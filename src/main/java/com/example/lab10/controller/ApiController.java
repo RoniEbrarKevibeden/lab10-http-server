@@ -1,6 +1,6 @@
 package com.example.lab10.controller;
 
-import com.example.lab10.dto.UserCreateRequest;
+import com.example.lab10.dto_.UserCreateRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
