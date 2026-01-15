@@ -1,4 +1,4 @@
-package com.example.lab10.dto;
+package com.example.lab10.dto_;
 
 import com.example.lab10.validation.Username;
 import jakarta.validation.constraints.Email;
