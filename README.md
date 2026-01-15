@@ -43,8 +43,7 @@ Returns: 200 OK (text/HTML)
 
 ## Test:
 	•	Browser: http://localhost:8080/hello
-	•	PowerShell:
-Invoke-WebRequest http://localhost:8080/hello -UseBasicParsing
+	•	PowerShell: Invoke-WebRequest http://localhost:8080/hello -UseBasicParsing
 
 ## 2) Read request headers
 
