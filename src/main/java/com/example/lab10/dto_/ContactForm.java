@@ -1,4 +1,4 @@
-package com.example.lab10.dto;
+package com.example.lab10.dto_;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
