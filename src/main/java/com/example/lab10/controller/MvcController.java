@@ -1,6 +1,6 @@
 package com.example.lab10.controller;
 
-import com.example.lab10.dto.ContactForm;
+import com.example.lab10.dto_.ContactForm;
 import jakarta.validation.Valid;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
