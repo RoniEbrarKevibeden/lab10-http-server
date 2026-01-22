@@ -1,0 +1,61 @@
+# ===============================
+# Secrets / Local configuration
+# ===============================
+.env
+database.db
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+
+.vscode/
+
+
+# ===============================
+# Maven / Build
+# ===============================
+target/
+.mvn/wrapper/maven-wrapper.jar
+
+# ===============================
+# Spring / Logs
+# ===============================
+logs/
+*.log
+
+# ===============================
+# IDE files
+# ===============================
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### VS Code ###
+.vscode/
+
+### Eclipse / STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+
+# ===============================
+# OS files
+# ===============================
+.DS_Store
+Thumbs.db
+
