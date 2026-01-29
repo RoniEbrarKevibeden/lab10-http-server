@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <title>Lab10 HTTP Server</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 15px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #333; font-size: 24px; text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #666; font-size: 13px; text-align: center; margin-bottom: 20px; }
+        .card { background: white; border: 1px solid #ddd; border-radius: 4px; padding: 15px; margin-bottom: 12px; }
+        .card h2 { font-size: 16px; color: #444; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+        .tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+        .tab-btn { flex: 1; padding: 8px; border: 1px solid #007bff; background: white; color: #007bff; cursor: pointer; font-size: 13px; border-radius: 3px; }
+        .tab-btn.active { background: #007bff; color: white; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-size: 12px; color: #555; margin-bottom: 3px; }
+        .form-group input, .form-group textarea { width: 100%; padding: 7px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px; }
+        .form-group small { font-size: 10px; color: #888; }
+        .btn { padding: 8px 15px; border: none; border-radius: 3px; font-size: 13px; cursor: pointer; margin-top: 8px; }
+        .btn-primary { background: #007bff; color: white; width: 100%; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-danger { background: #dc3545; color: white; width: 100%; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .alert { padding: 8px; border-radius: 3px; margin-bottom: 10px; font-size: 12px; display: none; }
+        .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; display: block; }
+        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; display: block; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .hidden { display: none; }
+        .info-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; border-bottom: 1px solid #f0f0f0; }
+        .info-row:last-child { border-bottom: none; }
+        .info-row .label { color: #666; }
+        .info-row .value { color: #333; font-weight: bold; }
+        .result-box { background: #f8f9fa; border: 1px solid #e9ecef; padding: 10px; border-radius: 3px; font-size: 12px; margin-top: 10px; white-space: pre-wrap; word-break: break-all; max-height: 150px; overflow-y: auto; }
+        .user-item { padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 12px; }
+        .note-item { background: #f8f9fa; padding: 8px; margin-bottom: 6px; border-radius: 3px; font-size: 12px; }
+        .note-item strong { color: #333; }
+        .admin-badge { background: #dc3545; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 5px; }
+        .user-badge { background: #28a745; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 5px; }
+        .section-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 600px) { .section-grid { grid-template-columns: 1fr; } }
+        .api-test-btn { padding: 6px 10px; font-size: 11px; margin: 3px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Lab10 HTTP Server</h1>
+        <p class="subtitle">Spring Boot - HTTP Implementation & Authentication</p>
+
+        <!-- LOGIN/REGISTER SECTION -->
+        <div id="authSection">
+            <div class="card">
+                <div id="authAlert" class="alert"></div>
+                <div class="tabs">
+                    <button class="tab-btn active" id="loginTab" onclick="switchTab('login')">Login</button>
+                    <button class="tab-btn" id="registerTab" onclick="switchTab('register')">Register</button>
+                </div>
+
+                <div id="loginContent" class="tab-content active">
+                    <form onsubmit="doLogin(event)">
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" id="loginUser" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" id="loginPass" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </form>
+                </div>
+
+                <div id="registerContent" class="tab-content">
+                    <form onsubmit="doRegister(event)">
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" id="regUser" required>
+                            <small>3-20 chars, letters/numbers/underscore</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" id="regEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="password" id="regPass" required minlength="8">
+                            <small>Min 8 chars, uppercase, lowercase, number, special char (@#$%^&+=!)</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Register</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD SECTION -->
+        <div id="dashboard" class="hidden">
+            <!-- Profile Card -->
+            <div class="card">
+                <h2>Profile <span id="roleBadge"></span></h2>
+                <div class="info-row">
+                    <span class="label">Username:</span>
+                    <span class="value" id="profileUser">-</span>
+                </div>
+                <div class="info-row">
+                    <span class="label">Role:</span>
+                    <span class="value" id="profileRole">-</span>
+                </div>
+                <button class="btn btn-danger" onclick="doLogout()" style="margin-top:10px;">Logout</button>
+            </div>
+
+            <div class="section-grid">
+                <!-- API Tests Card -->
+                <div class="card">
+                    <h2>API Endpoints Test</h2>
+                    <p style="font-size:11px;color:#666;margin-bottom:8px;">Test all endpoints from Lab 10:</p>
+                    
+                    <button class="btn btn-secondary api-test-btn" onclick="testHello()">GET /hello</button>
+                    <button class="btn btn-secondary api-test-btn" onclick="testHeaders()">GET /api/headers</button>
+                    <button class="btn btn-secondary api-test-btn" onclick="testEcho()">GET /api/echo</button>
+                    <button class="btn btn-secondary api-test-btn" onclick="testUsers()">GET /api/users</button>
+                    <button class="btn btn-secondary api-test-btn" onclick="testProfile()">GET /api/profile</button>
+                    <button class="btn btn-secondary api-test-btn" onclick="testAdminPing()">GET /admin/ping</button>
+                    
+                    <div id="apiResult" class="result-box" style="display:none;"></div>
+                </div>
+
+                <!-- Notes Card -->
+                <div class="card">
+                    <h2>My Notes</h2>
+                    <div id="notesList" style="max-height:120px;overflow-y:auto;margin-bottom:10px;">Loading...</div>
+                    <div class="form-group">
+                        <input type="text" id="noteTitle" placeholder="Note title">
+                    </div>
+                    <div class="form-group">
+                        <textarea id="noteContent" placeholder="Note content" rows="2"></textarea>
+                    </div>
+                    <button class="btn btn-success" onclick="createNote()" style="width:100%;">Add Note</button>
+                </div>
+            </div>
+
+            <!-- Users List Card (Admin Only) -->
+            <div class="card" id="usersCard" style="display:none;">
+                <h2>Registered Users (Admin Only)</h2>
+                <div id="usersList" style="max-height:150px;overflow-y:auto;">Loading...</div>
+            </div>
+
+            <!-- Echo Test Card -->
+            <div class="card">
+                <h2>Echo Test (POST /api/echo)</h2>
+                <div class="form-group">
+                    <input type="text" id="echoMsg" placeholder="Enter message to echo">
+                </div>
+                <button class="btn btn-primary" onclick="testEchoPost()">Send Echo</button>
+                <div id="echoResult" class="result-box" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var token = localStorage.getItem('token');
+        if (token) showDashboard();
+
+        function switchTab(t) {
+            document.getElementById('loginTab').className = 'tab-btn' + (t === 'login' ? ' active' : '');
+            document.getElementById('registerTab').className = 'tab-btn' + (t === 'register' ? ' active' : '');
+            document.getElementById('loginContent').className = 'tab-content' + (t === 'login' ? ' active' : '');
+            document.getElementById('registerContent').className = 'tab-content' + (t === 'register' ? ' active' : '');
+            document.getElementById('authAlert').className = 'alert';
+        }
+
+        function showAlert(id, msg, type) {
+            var el = document.getElementById(id);
+            el.textContent = msg;
+            el.className = 'alert alert-' + type;
+        }
+
+        function doRegister(e) {
+            e.preventDefault();
+            var u = document.getElementById('regUser').value.trim();
+            var em = document.getElementById('regEmail').value.trim();
+            var p = document.getElementById('regPass').value;
+
+            if (u.length < 3 || !/^[a-zA-Z0-9_]+$/.test(u)) {
+                showAlert('authAlert', 'Username: 3-20 chars, letters/numbers/underscore only', 'error');
+                return;
+            }
+            // Strong password validation
+            var passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@#$%^&+=!]).{8,}$/;
+            if (!passwordRegex.test(p)) {
+                showAlert('authAlert', 'Password: min 8 chars, uppercase, lowercase, number, special char (@#$%^&+=!)', 'error');
+                return;
+            }
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/auth/register', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = function() {
+                try {
+                    var res = JSON.parse(xhr.responseText);
+                    if (xhr.status === 200 && res.ok) {
+                        showAlert('authAlert', 'Registered! Please login.', 'success');
+                        document.getElementById('loginUser').value = u;
+                        setTimeout(function() { switchTab('login'); }, 1000);
+                    } else {
+                        var err = res.error || res.message || 'Registration failed';
+                        if (err === 'email_taken') err = 'Email already exists';
+                        if (err === 'username_taken') err = 'Username already exists';
+                        showAlert('authAlert', err, 'error');
+                    }
+                } catch (ex) { showAlert('authAlert', 'Server error', 'error'); }
+            };
+            xhr.onerror = function() { showAlert('authAlert', 'Network error', 'error'); };
+            xhr.send(JSON.stringify({ username: u, email: em, password: p }));
+        }
+
+        function doLogin(e) {
+            e.preventDefault();
+            var u = document.getElementById('loginUser').value.trim();
+            var p = document.getElementById('loginPass').value;
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/auth/login', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    var res = JSON.parse(xhr.responseText);
+                    if (res.accessToken) {
+                        token = res.accessToken;
+                        localStorage.setItem('token', token);
+                        showDashboard();
+                    } else {
+                        showAlert('authAlert', 'No token received', 'error');
+                    }
+                } else {
+                    showAlert('authAlert', 'Invalid username or password', 'error');
+                }
+            };
+            xhr.onerror = function() { showAlert('authAlert', 'Network error', 'error'); };
+            xhr.send(JSON.stringify({ username: u, password: p }));
+        }
+
+        function showDashboard() {
+            document.getElementById('authSection').className = 'hidden';
+            document.getElementById('dashboard').className = '';
+            loadProfile();
+            loadNotes();
+        }
+
+        function doLogout() {
+            localStorage.removeItem('token');
+            token = null;
+            document.getElementById('authSection').className = '';
+            document.getElementById('dashboard').className = 'hidden';
+        }
+
+        function loadProfile() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/api/profile', true);
+            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    var d = JSON.parse(xhr.responseText);
+                    document.getElementById('profileUser').textContent = d.username;
+                    var roles = (d.roles || []).join(', ');
+                    document.getElementById('profileRole').textContent = roles;
+                    var isAdmin = roles.indexOf('ADMIN') !== -1;
+                    document.getElementById('roleBadge').innerHTML = isAdmin ? '<span class="admin-badge">ADMIN</span>' : '<span class="user-badge">USER</span>';
+                    
+                    // Show users card only for admin
+                    if (isAdmin) {
+                        document.getElementById('usersCard').style.display = 'block';
+                        loadUsers();
+                    } else {
+                        document.getElementById('usersCard').style.display = 'none';
+                    }
+                } else if (xhr.status === 401) { doLogout(); }
+            };
+            xhr.send();
+        }
+
+        function loadUsers() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/api/users', true);
+            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    var users = JSON.parse(xhr.responseText);
+                    var html = '';
+                    for (var i = 0; i < users.length; i++) {
+                        var u = users[i];
+                        var badge = u.role === 'ROLE_ADMIN' ? '<span class="admin-badge">ADMIN</span>' : '<span class="user-badge">USER</span>';
+                        html += '<div class="user-item"><strong>' + u.username + '</strong> ' + badge + ' - ' + u.email + '</div>';
+                    }
+                    document.getElementById('usersList').innerHTML = html || 'No users';
+                }
+            };
+            xhr.send();
+        }
+
+        function loadNotes() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/notes', true);
+            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    var notes = JSON.parse(xhr.responseText);
+                    var html = '';
+                    for (var i = 0; i < notes.length; i++) {
+                        var n = notes[i];
+                        html += '<div class="note-item"><strong>' + n.title + '</strong><br>' + n.content + '</div>';
+                    }
+                    document.getElementById('notesList').innerHTML = html || '<p style="color:#888;font-size:11px;">No notes yet</p>';
+                }
+            };
+            xhr.send();
+        }
+
+        function createNote() {
+            var t = document.getElementById('noteTitle').value.trim();
+            var c = document.getElementById('noteContent').value.trim();
+            if (!t || !c) { alert('Enter title and content'); return; }
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/notes', true);
+            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    document.getElementById('noteTitle').value = '';
+                    document.getElementById('noteContent').value = '';
+                    loadNotes();
+                }
+            };
+            xhr.send(JSON.stringify({ title: t, content: c }));
+        }
+
+        function showApiResult(text) {
+            var el = document.getElementById('apiResult');
+            el.style.display = 'block';
+            el.textContent = text;
+        }
+
+        function testHello() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/hello', true);
+            xhr.onload = function() { showApiResult('Status: ' + xhr.status + '\n\n' + xhr.responseText); };
+            xhr.send();
+        }
+
+        function testHeaders() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/api/headers', true);
+            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            xhr.onload = function() { showApiResult('Status: ' + xhr.status + '\n\n' + xhr.responseText); };
+            xhr.send();
+        }
+
+        function testEcho() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/api/echo?msg=HelloWorld', true);
+            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            xhr.onload = function() { showApiResult('Status: ' + xhr.status + '\n\n' + xhr.responseText); };
+            xhr.send();
+        }
+
+        function testUsers() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/api/users', true);
+            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            xhr.onload = function() { showApiResult('Status: ' + xhr.status + '\n\n' + xhr.responseText); };
+            xhr.send();
+        }
+
+        function testProfile() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/api/profile', true);
+            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            xhr.onload = function() { showApiResult('Status: ' + xhr.status + '\n\n' + xhr.responseText); };
+            xhr.send();
+        }
+
+        function testAdminPing() {
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/admin/ping', true);
+            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            xhr.onload = function() { 
+                var msg = xhr.status === 200 ? 'ADMIN ACCESS OK!\n\n' + xhr.responseText : 'Status: ' + xhr.status + ' (Admin only!)';
+                showApiResult(msg); 
+            };
+            xhr.send();
+        }
+
+        function testEchoPost() {
+            var msg = document.getElementById('echoMsg').value;
+            if (!msg) { alert('Enter a message'); return; }
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/echo', true);
+            xhr.setRequestHeader('Authorization', 'Bearer ' + token);
+            xhr.setRequestHeader('Content-Type', 'text/plain');
+            xhr.onload = function() {
+                var el = document.getElementById('echoResult');
+                el.style.display = 'block';
+                el.textContent = 'Status: ' + xhr.status + '\nResponse: ' + xhr.responseText;
+            };
+            xhr.send(msg);
+        }
+    </script>
+</body>
+</html>
